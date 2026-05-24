@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Supp Results – RABiTPy 细菌运动分析补充报告</title>
+    <style>
+        body {
+            font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: #ffffff;
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border-radius: 10px;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+            border-left: 5px solid #8e44ad;
+            padding-left: 10px;
+        }
+        h1 {
+            text-align: center;
+            border: none;
+            padding: 0;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        img {
+            display: block;
+            max-width: 90%;
+            margin: 20px auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .figure-caption {
+            text-align: center;
+            font-size: 0.9em;
+            color: #555;
+            margin-top: -10px;
+            margin-bottom: 30px;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            overflow-x: auto;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        .note {
+            background: #fef9e7;
+            padding: 15px;
+            border-left: 5px solid #f1c40f;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #888;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Supp Results – RABiTPy 细菌运动分析补充报告</h1>
+    <p class="subtitle">基于 Flavobacterium johnsoniae 视频的补充统计与敏感性分析</p>
+
+    <div class="note">
+        ⚠️ <strong>说明：</strong>本报告为 <strong>Main Results</strong> 的补充材料，重点展示参数敏感性、不同阈值方法对比及额外统计指标，用于验证主结果的稳健性。
+    </div>
+
+    <h2>1. 不同阈值方法对比（Identify）</h2>
+    <p>在主分析中使用了 Omnipose AI 分割。此处补充对比三种灰度阈值方法对识别结果的影响。</p>
+
+    <pre>
+# 手动阈值
+identify.apply_grayscale_thresholding(threshold=0.52)
+
+# 算法阈值（Yen）
+identify.apply_algorithm_based_thresholding(
+    algorithm='yen',
+    is_color_inverse=True
+)
+
+# 自适应高斯阈值
+identify.apply_gaussian_adaptive_thresholding(
+    block_size=11,
+    c=5
+)
+    </pre>
+
+    <h3>图 S1：不同阈值方法识别效果对比</h3>
+    <img src="../supp_results/threshold_comparison.png" alt="阈值方法对比">
+    <div class="figure-caption">
+        图 S1：从左到右依次为：原始帧、手动阈值（0.52）、Yen 算法阈值、自适应高斯阈值。
+        可见 AI 方法（主报告）在复杂背景下分割更完整。
+    </div>
+
+    <h2>2. 轨迹长度分布统计</h2>
+    <p>分析所有被追踪细菌的轨迹长度分布，用于验证 <code>min_frames=500</code> 过滤条件的合理性。</p>
+
+    <h3>图 S2：轨迹长度分布直方图</h3>
+    <img src="../supp_results/track_length_distribution.png" alt="轨迹长度分布">
+    <div class="figure-caption">
+        图 S2：细菌轨迹长度（帧数）分布。红色虚线表示主分析中使用的 500 帧阈值，
+        可见绝大多数有效轨迹集中在长时程区间。
+    </div>
+
+    <h2>3. 均方位移（MSD）分析</h2>
+    <p>除速度外，进一步计算均方位移（Mean Squared Displacement, MSD），以区分扩散类型。</p>
+
+    <pre>
+# 计算 MSD
+msd_df = stats.calculate_msd(
+    time_interval=1,
+    max_lag=100
+)
+stats.plot_msd(msd_df)
+    </pre>
+
+    <h3>图 S3：细菌均方位移（MSD）曲线</h3>
+    <img src="../supp_results/msd_curve.png" alt="MSD 曲线">
+    <div class="figure-caption">
+        图 S3：MSD 随时间间隔的变化曲线。非线性增长表明细菌呈定向运动（active motion），
+        而非简单布朗运动。
+    </div>
+
+    <h2>4. 参数敏感性分析</h2>
+    <p>测试 <code>link_particles</code> 中 <code>max_distance</code> 参数对追踪结果的影响。</p>
+
+    <table>
+        <tr>
+            <th>max_distance (像素)</th>
+            <th>追踪轨迹数</th>
+            <th>平均轨迹长度 (帧)</th>
+        </tr>
+        <tr>
+            <td>30</td>
+            <td>8</td>
+            <td>420</td>
+        </tr>
+        <tr>
+            <td>50</td>
+            <td>14</td>
+            <td>512</td>
+        </tr>
+        <tr>
+            <td>80</td>
+            <td>22</td>
+            <td>387</td>
+        </tr>
+    </table>
+
+    <div class="note">
+        结果表明：<code>max_distance = 50</code> 在误连接率与轨迹连续性之间取得了最佳平衡，
+        因此被选为主分析参数。
+    </div>
+
+    <footer>
+        Supplementary Materials – RABiTPy Replication Project<br>
+        复现日期：2026 年 5 月
+    </footer>
+</div>
+
+</body>
+</html>
